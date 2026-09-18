@@ -2350,7 +2350,8 @@ button, input, select, textarea {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  position: relative;
+  position: absolute;
+  right: 48px;
   will-change: transform, opacity;
   background: rgba(255, 255, 255, 0.88);
   backdrop-filter: blur(20px);
@@ -2360,6 +2361,7 @@ button, input, select, textarea {
   border: 1.5px solid rgba(255, 255, 255, 0.95);
   box-shadow: 0 20px 50px -12px rgba(124, 58, 237, 0.12), 0 4px 16px rgba(0, 0, 0, 0.03);
   max-width: 530px;
+  width: 100%;
   z-index: 12;
 }
 
@@ -2368,7 +2370,8 @@ button, input, select, textarea {
   display: flex;
   flex-direction: column;
   align-items: center;
-  position: relative;
+  position: absolute;
+  right: 48px;
   width: 100%;
   max-width: 530px;
   z-index: 20;
@@ -6939,16 +6942,22 @@ button, input, select, textarea {
 
 /* 1. Global Viewport & Scroll Protection */
 html, body {
-  overflow-x: hidden !important;
-  width: 100% !important;
-  max-width: 100vw !important;
+  overflow-x: clip;
+  width: 100%;
+  max-width: 100vw;
   -webkit-text-size-adjust: 100%;
 }
 
-.pulsepoll-app, .landing-wrapper {
-  overflow-x: hidden !important;
-  width: 100% !important;
-  max-width: 100vw !important;
+.pulsepoll-app {
+  overflow-x: clip;
+  width: 100%;
+  max-width: 100vw;
+}
+
+.landing-wrapper {
+  overflow-x: clip;
+  width: 100%;
+  position: relative;
 }
 
 /* 2. Mobile Bottom Navigation Bar */
@@ -7395,9 +7404,18 @@ html, body {
   }
 
   .che-hero-text-col {
+    position: relative !important;
+    right: auto !important;
     padding: 24px 16px !important;
     border-radius: 20px !important;
     margin: 0 auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .che-scroll-stage-col {
+    position: relative !important;
+    right: auto !important;
     width: 100% !important;
     max-width: 100% !important;
   }
