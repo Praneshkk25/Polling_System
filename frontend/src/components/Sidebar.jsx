@@ -4,7 +4,15 @@ import {
   ChevronLeft, ChevronRight
 } from 'lucide-react';
 
-export default function Sidebar({ activeTab, setActiveTab, onOpenCreate, collapsed, onToggleCollapse }) {
+export default function Sidebar({
+  activeTab,
+  setActiveTab,
+  onOpenCreate,
+  collapsed,
+  onToggleCollapse,
+  mobileOpen,
+  onCloseMobile,
+}) {
   const navItems = [
     { id: 'home', label: 'Home', icon: Home },
     { id: 'my-polls', label: 'My Polls', icon: BarChart2 },
@@ -16,7 +24,13 @@ export default function Sidebar({ activeTab, setActiveTab, onOpenCreate, collaps
   ];
 
   return (
-    <aside className={`left-sidebar ${collapsed ? 'collapsed' : ''}`}>
+    <>
+      {/* Mobile Drawer Backdrop */}
+      {mobileOpen && (
+        <div className="sidebar-mobile-backdrop" onClick={onCloseMobile} />
+      )}
+
+      <aside className={`left-sidebar ${collapsed ? 'collapsed' : ''} ${mobileOpen ? 'mobile-open' : ''}`}>
       <div className="sidebar-top-section">
         <ul className="sidebar-nav-list">
           {navItems.map((item) => {
@@ -83,5 +97,6 @@ export default function Sidebar({ activeTab, setActiveTab, onOpenCreate, collaps
         )}
       </div>
     </aside>
+    </>
   );
 }

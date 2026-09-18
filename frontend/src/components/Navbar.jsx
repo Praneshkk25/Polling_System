@@ -13,6 +13,7 @@ export default function Navbar({
   onNavigateToLanding,
   sidebarCollapsed,
   onToggleSidebar,
+  mobileMenuOpen,
 }) {
   const { user, logout } = useAuth();
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -25,12 +26,12 @@ export default function Navbar({
         {onToggleSidebar && (
           <button
             type="button"
-            className="sidebar-toggle-btn"
+            className={`sidebar-toggle-btn ${mobileMenuOpen ? 'mobile-active' : ''}`}
             onClick={onToggleSidebar}
-            title={sidebarCollapsed ? "Expand Sidebar (Ctrl+B)" : "Collapse Sidebar (Ctrl+B)"}
+            title={mobileMenuOpen || !sidebarCollapsed ? "Collapse Sidebar" : "Expand Sidebar"}
             aria-label="Toggle Sidebar"
           >
-            {sidebarCollapsed ? <PanelLeftOpen size={19} /> : <PanelLeftClose size={19} />}
+            {mobileMenuOpen || !sidebarCollapsed ? <PanelLeftClose size={19} /> : <PanelLeftOpen size={19} />}
           </button>
         )}
 

@@ -14,7 +14,7 @@ import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import {
   BarChart2, Radio, CheckCircle2, Lock, Sparkles, Filter, Search,
-  RefreshCw, TrendingUp, ShieldCheck, User, Key, LogOut
+  RefreshCw, TrendingUp, ShieldCheck, User, Key, LogOut, Home, Compass, Plus
 } from 'lucide-react';
 
 export default function DashboardPage({
@@ -35,6 +35,7 @@ export default function DashboardPage({
   const [exploreSort, setExploreSort] = useState('trending');
   const [loading, setLoading] = useState(true);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Modals
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -209,7 +210,11 @@ export default function DashboardPage({
         onNavigateHome={() => setActiveNavTab('home')}
         onNavigateToLanding={onNavigateToLanding}
         sidebarCollapsed={sidebarCollapsed}
-        onToggleSidebar={() => setSidebarCollapsed((prev) => !prev)}
+        mobileMenuOpen={mobileMenuOpen}
+        onToggleSidebar={() => {
+          setSidebarCollapsed((prev) => !prev);
+          setMobileMenuOpen((prev) => !prev);
+        }}
       />
 
       {/* Main 3-Column Dashboard Layout */}
@@ -219,11 +224,17 @@ export default function DashboardPage({
           activeTab={activeNavTab}
           setActiveTab={(tab) => {
             setActiveNavTab(tab);
+            setMobileMenuOpen(false);
             if (tab === 'my-polls') setFilterTab('all');
           }}
-          onOpenCreate={() => setShowCreateModal(true)}
+          onOpenCreate={() => {
+            setShowCreateModal(true);
+            setMobileMenuOpen(false);
+          }}
           collapsed={sidebarCollapsed}
           onToggleCollapse={() => setSidebarCollapsed((prev) => !prev)}
+          mobileOpen={mobileMenuOpen}
+          onCloseMobile={() => setMobileMenuOpen(false)}
         />
 
         {/* Center Column: Dynamic Content per Tab */}
@@ -652,6 +663,66 @@ export default function DashboardPage({
           }}
         />
       </div>
+
+      {/* Mobile Bottom Navigation Bar (Visible only on mobile screens < 860px) */}
+      <nav className="mobile-bottom-nav" aria-label="Mobile Navigation">
+        <button
+          type="button"
+          className={`mobile-nav-btn ${activeNavTab === 'home' ? 'active' : ''}`}
+          onClick={() => { setActiveNavTab('home'); setMobileMenuOpen(false); }}
+        >
+          <Home size={20} strokeWidth={activeNavTab === 'home' ? 2.5 : 2} />
+          <span>Home</span>
+        </button>
+
+        <button
+          type="button"
+          className={`mobile-nav-btn ${activeNavTab === 'my-polls' ? 'active' : ''}`}
+          onClick={() => {
+            setActiveNavTab('my-polls');
+            setFilterTab('all');
+            setMobileMenuOpen(false);
+          }}
+        >
+          <BarChart2 size={20} strokeWidth={activeNavTab === 'my-polls' ? 2.5 : 2} />
+          <span>My Polls</span>
+        </button>
+
+        {/* Floating Create Button */}
+        <button
+          type="button"
+          className="mobile-nav-create-btn"
+          onClick={() => {
+            setShowCreateModal(true);
+            setMobileMenuOpen(false);
+          }}
+          title="Create Poll"
+          aria-label="Create Poll"
+        >
+          <div className="mobile-create-fab">
+            <Plus size={22} color="#FFFFFF" strokeWidth={2.8} />
+          </div>
+          <span>Create</span>
+        </button>
+
+        <button
+          type="button"
+          className={`mobile-nav-btn ${activeNavTab === 'explore' ? 'active' : ''}`}
+          onClick={() => { setActiveNavTab('explore'); setMobileMenuOpen(false); }}
+        >
+          <Compass size={20} strokeWidth={activeNavTab === 'explore' ? 2.5 : 2} />
+          <span>Explore</span>
+        </button>
+
+        <button
+          type="button"
+          className={`mobile-nav-btn ${activeNavTab === 'analytics' || activeNavTab === 'profile' ? 'active' : ''}`}
+          onClick={() => { setActiveNavTab(user ? 'analytics' : 'profile'); setMobileMenuOpen(false); }}
+        >
+          <TrendingUp size={20} strokeWidth={activeNavTab === 'analytics' || activeNavTab === 'profile' ? 2.5 : 2} />
+          <span>{user ? 'Analytics' : 'Profile'}</span>
+        </button>
+      </nav>
 
       {/* Modals */}
       <CreatePollModal
