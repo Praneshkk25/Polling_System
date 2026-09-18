@@ -48,6 +48,18 @@ func main() {
 	r := gin.Default()
 	r.Use(middleware.CORSMiddleware())
 
+	// Root Welcome Route
+	r.GET("/", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"message":  "PulsePoll Real-time Engine is Online & Healthy!",
+			"version":  "1.0.0",
+			"status":   "healthy",
+			"health":   "/health",
+			"api_docs": "/api",
+			"realtime": "Redis Pub/Sub (Upstash) + WebSockets",
+		})
+	})
+
 	// Health Check
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
