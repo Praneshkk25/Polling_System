@@ -12,7 +12,6 @@ import JoinModal from '../components/JoinModal';
 import AuthModal from '../components/AuthModal';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import ThemeToggle from '../components/ThemeToggle';
 import {
   BarChart2, Radio, CheckCircle2, Lock, Sparkles, Filter, Search,
   RefreshCw, TrendingUp, ShieldCheck, User, Key, LogOut, Home, Compass, Plus
@@ -608,19 +607,6 @@ export default function DashboardPage({
               <p style={{ fontSize: '13px', color: '#6B7280', marginBottom: '24px' }}>
                 Appearance, live operational health, and system status
               </p>
-
-              {/* Theme Selection Card */}
-              <div className="setting-status-row" style={{ marginBottom: '24px', paddingBottom: '20px', borderBottom: '1px solid #F3F4F6' }}>
-                <div>
-                  <h4 style={{ fontSize: '15px', fontWeight: 700, marginBottom: '4px' }}>Appearance Theme</h4>
-                  <p style={{ fontSize: '12.5px', color: '#6B7280' }}>
-                    Choose between Light, Dark, or automatically match your System Default OS mode.
-                  </p>
-                </div>
-                <div style={{ marginTop: '8px' }}>
-                  <ThemeToggle variant="segmented" />
-                </div>
-              </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                 <div className="setting-status-row">
