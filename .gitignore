@@ -1,0 +1,26 @@
+# Binaries and build artifacts
+*.exe
+backend/server.exe
+backend/server
+backend/tmp/
+backend/*.exe
+
+# Node dependencies and build
+node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+dist/
+
+# Environment and secrets (CRITICAL: protect credentials)
+.env
+.env.*
+*.env
+backend/.env
+frontend/.env
+
+# IDE and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

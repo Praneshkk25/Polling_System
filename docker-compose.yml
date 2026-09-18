@@ -1,0 +1,70 @@
+version: '3.8'
+
+services:
+  # 1. MongoDB Service (Persistent Data)
+  mongo:
+    image: mongo:7.0
+    container_name: pulsepoll-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - pulsepoll-network
+
+  # 2. Redis Service (Pub/Sub & Real-time Counts)
+  redis:
+    image: redis:7.2-alpine
+    container_name: pulsepoll-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - pulsepoll-network
+
+  # 3. Go + Gin Backend Service
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: pulsepoll-backend
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+      - MONGODB_URI=mongodb://mongo:27017
+      - MONGODB_DATABASE=pulsepoll
+      - REDIS_ADDR=redis:6379
+      - JWT_SECRET=pulsepoll_production_jwt_secret_key_2026
+      - CLIENT_ORIGIN=*
+    depends_on:
+      - mongo
+      - redis
+    networks:
+      - pulsepoll-network
+
+  # 4. React Frontend Service
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: pulsepoll-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - pulsepoll-network
+
+volumes:
+  mongo_data:
+  redis_data:
+
+networks:
+  pulsepoll-network:
+    driver: bridge
