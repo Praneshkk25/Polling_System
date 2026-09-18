@@ -4,7 +4,6 @@ import {
   PanelLeftClose, PanelLeftOpen
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import ThemeToggle from './ThemeToggle';
 
 export default function Navbar({
   onOpenCreate,
@@ -68,9 +67,6 @@ export default function Navbar({
 
       {/* Right Controls */}
       <div className="nav-right-actions">
-        {/* Theme Mode Toggle (System / Light / Dark) */}
-        <ThemeToggle />
-
         {/* Notification Bell */}
         <div style={{ position: 'relative' }}>
           <button

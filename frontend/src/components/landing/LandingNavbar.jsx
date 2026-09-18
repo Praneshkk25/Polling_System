@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Zap, ArrowRight } from 'lucide-react';
 import { useGlobalScrollProgress } from './motion/useScrollProgress';
 import { useAuth } from '../../context/AuthContext';
-import ThemeToggle from '../ThemeToggle';
 
 export default function LandingNavbar({ onGetStarted, onSignIn, onExplore }) {
   const { user } = useAuth();
@@ -64,9 +63,6 @@ export default function LandingNavbar({ onGetStarted, onSignIn, onExplore }) {
 
           {/* Action CTAs */}
           <div className="landing-nav-actions">
-            {/* Theme Toggle (System / Light / Dark) */}
-            <ThemeToggle />
-
             {user ? (
               <button className="btn-nav-getstarted" onClick={onGetStarted} id="nav-get-started-btn">
                 <span>Go to Dashboard</span>

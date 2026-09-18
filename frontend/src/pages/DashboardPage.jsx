@@ -213,8 +213,11 @@ export default function DashboardPage({
         sidebarCollapsed={sidebarCollapsed}
         mobileMenuOpen={mobileMenuOpen}
         onToggleSidebar={() => {
-          setSidebarCollapsed((prev) => !prev);
-          setMobileMenuOpen((prev) => !prev);
+          if (typeof window !== 'undefined' && window.innerWidth <= 860) {
+            setMobileMenuOpen((prev) => !prev);
+          } else {
+            setSidebarCollapsed((prev) => !prev);
+          }
         }}
       />
 
