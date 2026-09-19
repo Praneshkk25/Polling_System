@@ -5258,6 +5258,16 @@ button, input, select, textarea {
   padding-right: 40px !important;
 }
 
+.input-error {
+  border-color: #EF4444 !important;
+  background-color: #FEF2F2 !important;
+}
+
+.input-error:focus {
+  border-color: #DC2626 !important;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2) !important;
+}
+
 .btn-toggle-eye {
   position: absolute;
   right: 12px;

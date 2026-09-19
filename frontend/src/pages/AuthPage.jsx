@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import {
   Zap, Radio, BarChart2, ShieldCheck, Users, Eye, EyeOff,
-  ArrowLeft, CheckCircle2, AlertCircle, Sparkles, LogIn, UserPlus
+  ArrowLeft, AlertCircle, LogIn, UserPlus, Check
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import Button from '../components/ui/Button';
+import { validateEmail, validatePassword, checkPasswordCriteria, getPasswordStrength } from '../utils/validation';
 
 export default function AuthPage({ initialMode = 'login', onBackToHome, onSuccess, showToast }) {
   const [mode, setMode] = useState(initialMode); // 'login' or 'signup'
@@ -16,19 +17,91 @@ export default function AuthPage({ initialMode = 'login', onBackToHome, onSucces
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // Field-level error messages
+  const [nameError, setNameError] = useState('');
+  const [emailError, setEmailError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [touched, setTouched] = useState({ name: false, email: false, password: false });
+
   const { login, signup } = useAuth();
+
+  const passwordCriteria = checkPasswordCriteria(password);
+  const passwordStrength = getPasswordStrength(password);
+
+  const switchMode = (newMode) => {
+    setMode(newMode);
+    setError('');
+    setNameError('');
+    setEmailError('');
+    setPasswordError('');
+    setTouched({ name: false, email: false, password: false });
+  };
+
+  const handleEmailChange = (val) => {
+    setEmail(val);
+    if (touched.email) {
+      const res = validateEmail(val);
+      setEmailError(res.isValid ? '' : res.error);
+    }
+  };
+
+  const handleEmailBlur = () => {
+    setTouched((prev) => ({ ...prev, email: true }));
+    const res = validateEmail(email);
+    setEmailError(res.isValid ? '' : res.error);
+  };
+
+  const handlePasswordChange = (val) => {
+    setPassword(val);
+    if (touched.password) {
+      const res = validatePassword(val, mode === 'signup');
+      setPasswordError(res.isValid ? '' : res.error);
+    }
+  };
+
+  const handlePasswordBlur = () => {
+    setTouched((prev) => ({ ...prev, password: true }));
+    const res = validatePassword(password, mode === 'signup');
+    setPasswordError(res.isValid ? '' : res.error);
+  };
+
+  const handleNameChange = (val) => {
+    setName(val);
+    if (touched.name) {
+      setNameError(val.trim().length >= 2 ? '' : 'Name must be at least 2 characters');
+    }
+  };
+
+  const handleNameBlur = () => {
+    setTouched((prev) => ({ ...prev, name: true }));
+    setNameError(name.trim().length >= 2 ? '' : 'Name must be at least 2 characters');
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (loading) return;
     setError('');
 
-    if (mode === 'signup' && !name.trim()) {
-      setError('Please enter your full name');
+    // Mark all as touched
+    setTouched({ name: true, email: true, password: true });
+
+    if (mode === 'signup' && name.trim().length < 2) {
+      setNameError('Please enter your full name (at least 2 characters)');
+      setError('Please fill in all required fields properly');
       return;
     }
-    if (!email.trim() || !password) {
-      setError('Please enter both email and password');
+
+    const emailVal = validateEmail(email);
+    if (!emailVal.isValid) {
+      setEmailError(emailVal.error);
+      setError(emailVal.error);
+      return;
+    }
+
+    const passVal = validatePassword(password, mode === 'signup');
+    if (!passVal.isValid) {
+      setPasswordError(passVal.error);
+      setError(passVal.error);
       return;
     }
 
@@ -53,6 +126,8 @@ export default function AuthPage({ initialMode = 'login', onBackToHome, onSucces
     setEmail('pranesh@pulsepoll.io');
     setPassword('Password123!');
     setError('');
+    setEmailError('');
+    setPasswordError('');
   };
 
   return (
@@ -144,18 +219,24 @@ export default function AuthPage({ initialMode = 'login', onBackToHome, onSucces
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="auth-form">
+          <form onSubmit={handleSubmit} className="auth-form" noValidate>
             {mode === 'signup' && (
               <div className="form-group">
                 <label className="form-label">Full Name</label>
                 <input
                   type="text"
-                  className="form-input"
+                  className={`form-input ${nameError ? 'input-error' : ''}`}
                   placeholder="e.g., Pranesh Kumar"
                   value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  onChange={(e) => handleNameChange(e.target.value)}
+                  onBlur={handleNameBlur}
                   required
                 />
+                {nameError && (
+                  <span style={{ fontSize: '11px', color: '#DC2626', marginTop: '4px', display: 'block', fontWeight: 500 }}>
+                    {nameError}
+                  </span>
+                )}
               </div>
             )}
 
@@ -163,12 +244,18 @@ export default function AuthPage({ initialMode = 'login', onBackToHome, onSucces
               <label className="form-label">Email Address</label>
               <input
                 type="email"
-                className="form-input"
+                className={`form-input ${emailError ? 'input-error' : ''}`}
                 placeholder="you@pulsepoll.io"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => handleEmailChange(e.target.value)}
+                onBlur={handleEmailBlur}
                 required
               />
+              {emailError && (
+                <span style={{ fontSize: '11px', color: '#DC2626', marginTop: '4px', display: 'block', fontWeight: 500 }}>
+                  {emailError}
+                </span>
+              )}
             </div>
 
             <div className="form-group">
@@ -188,10 +275,11 @@ export default function AuthPage({ initialMode = 'login', onBackToHome, onSucces
               <div className="password-input-wrap">
                 <input
                   type={showPassword ? 'text' : 'password'}
-                  className="form-input password-field"
-                  placeholder="••••••••••••"
+                  className={`form-input password-field ${passwordError ? 'input-error' : ''}`}
+                  placeholder={mode === 'signup' ? 'Create secure password' : '••••••••••••'}
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e) => handlePasswordChange(e.target.value)}
+                  onBlur={handlePasswordBlur}
                   required
                 />
                 <button
@@ -199,10 +287,68 @@ export default function AuthPage({ initialMode = 'login', onBackToHome, onSucces
                   className="btn-toggle-eye"
                   onClick={() => setShowPassword(!showPassword)}
                   tabIndex={-1}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
+              {passwordError && (
+                <span style={{ fontSize: '11px', color: '#DC2626', marginTop: '4px', display: 'block', fontWeight: 500 }}>
+                  {passwordError}
+                </span>
+              )}
+
+              {/* Password Strength Meter in Signup mode */}
+              {mode === 'signup' && (
+                <div style={{ marginTop: '10px', background: '#F9FAFB', padding: '10px 12px', borderRadius: '10px', border: '1px solid #E5E7EB' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                    <span style={{ fontSize: '11px', fontWeight: 600, color: '#4B5563' }}>Password Strength</span>
+                    <span style={{ fontSize: '11px', fontWeight: 700, color: passwordStrength.textColor }}>
+                      {password ? passwordStrength.label : 'None'}
+                    </span>
+                  </div>
+
+                  {/* Visual Progress Bar */}
+                  <div style={{ display: 'flex', gap: '4px', height: '4px', marginBottom: '8px' }}>
+                    {[1, 2, 3, 4].map((step) => (
+                      <div
+                        key={step}
+                        style={{
+                          flex: 1,
+                          height: '100%',
+                          borderRadius: '2px',
+                          background: passwordStrength.score >= step ? passwordStrength.color : '#E5E7EB',
+                          transition: 'background 0.3s ease',
+                        }}
+                      />
+                    ))}
+                  </div>
+
+                  {/* Criteria Checklist */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px', fontSize: '11px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: passwordCriteria.minLength ? '#059669' : '#9CA3AF' }}>
+                      <Check size={12} strokeWidth={passwordCriteria.minLength ? 3 : 2} />
+                      <span>8+ characters</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: passwordCriteria.hasUpper ? '#059669' : '#9CA3AF' }}>
+                      <Check size={12} strokeWidth={passwordCriteria.hasUpper ? 3 : 2} />
+                      <span>Uppercase (A-Z)</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: passwordCriteria.hasLower ? '#059669' : '#9CA3AF' }}>
+                      <Check size={12} strokeWidth={passwordCriteria.hasLower ? 3 : 2} />
+                      <span>Lowercase (a-z)</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: passwordCriteria.hasNumber ? '#059669' : '#9CA3AF' }}>
+                      <Check size={12} strokeWidth={passwordCriteria.hasNumber ? 3 : 2} />
+                      <span>Number (0-9)</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: passwordCriteria.hasSpecial ? '#059669' : '#9CA3AF', gridColumn: 'span 2' }}>
+                      <Check size={12} strokeWidth={passwordCriteria.hasSpecial ? 3 : 2} />
+                      <span>Special symbol (!@#$%^&*...)</span>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {mode === 'login' && (
@@ -283,14 +429,14 @@ export default function AuthPage({ initialMode = 'login', onBackToHome, onSucces
             {mode === 'login' ? (
               <p>
                 Don't have an account?{' '}
-                <button type="button" className="auth-mode-link" onClick={() => { setMode('signup'); setError(''); }}>
+                <button type="button" className="auth-mode-link" onClick={() => switchMode('signup')}>
                   Create one
                 </button>
               </p>
             ) : (
               <p>
                 Already have an account?{' '}
-                <button type="button" className="auth-mode-link" onClick={() => { setMode('login'); setError(''); }}>
+                <button type="button" className="auth-mode-link" onClick={() => switchMode('login')}>
                   Sign in
                 </button>
               </p>

@@ -12,6 +12,7 @@ import JoinModal from '../components/JoinModal';
 import AuthModal from '../components/AuthModal';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { validatePassword } from '../utils/validation';
 import {
   BarChart2, Radio, CheckCircle2, Lock, Sparkles, Filter, Search,
   RefreshCw, TrendingUp, ShieldCheck, User, Key, LogOut, Home, Compass, Plus
@@ -149,6 +150,15 @@ export default function DashboardPage({
     e.preventDefault();
     if (!oldPassword || !newPassword) {
       showToast('Please enter both current and new password');
+      return;
+    }
+    if (oldPassword === newPassword) {
+      showToast('New password must be different from current password');
+      return;
+    }
+    const passVal = validatePassword(newPassword, true);
+    if (!passVal.isValid) {
+      showToast(passVal.error);
       return;
     }
     setSavingProfile(true);
@@ -576,7 +586,7 @@ export default function DashboardPage({
                   <input
                     type="password"
                     className="form-input"
-                    placeholder="New Password (min 6 chars)"
+                    placeholder="New Password (min 8 chars, uppercase, number & symbol)"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                   />

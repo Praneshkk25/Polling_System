@@ -18,7 +18,7 @@ type User struct {
 type SignupInput struct {
 	Name     string `json:"name" binding:"required,min=2,max=60"`
 	Email    string `json:"email" binding:"required,email"`
-	Password string `json:"password" binding:"required,min=6,max=100"`
+	Password string `json:"password" binding:"required,min=8,max=100"`
 }
 
 type LoginInput struct {
@@ -32,7 +32,7 @@ type UpdateProfileInput struct {
 
 type ChangePasswordInput struct {
 	OldPassword string `json:"oldPassword" binding:"required"`
-	NewPassword string `json:"newPassword" binding:"required,min=6,max=100"`
+	NewPassword string `json:"newPassword" binding:"required,min=8,max=100"`
 }
 
 type UserResponse struct {
