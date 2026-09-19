@@ -14,8 +14,8 @@ type Store interface {
 
 	CreatePoll(poll *models.Poll) error
 	GetPollByID(id string) (*models.Poll, error)
-	ListPolls(status, category, search, userID string) ([]*models.Poll, error)
-	ListPublicPolls(category, search, sort string, limit int) ([]*models.Poll, error)
+	ListPolls(status, category, search, userID string, excludeMock bool) ([]*models.Poll, error)
+	ListPublicPolls(category, search, sort string, limit int, excludeMock bool) ([]*models.Poll, error)
 	UpdatePoll(poll *models.Poll) error
 	UpdatePollStatus(id, status string) error
 	DeletePoll(id, userID string) error
@@ -24,9 +24,9 @@ type Store interface {
 
 	HasVoted(pollID, voterID, voterIP string) (bool, error)
 	RecordVote(vote *models.Vote) (*models.Poll, error)
-	GetDashboardStats() (*models.DashboardStats, error)
+	GetDashboardStats(userID string) (*models.DashboardStats, error)
 	GetAnalytics(userID string) (*models.AnalyticsResponse, error)
 
 	RecordActivity(activity *models.Activity) error
-	GetRecentActivities(limit int) ([]*models.Activity, error)
+	GetRecentActivities(limit int, userID string) ([]*models.Activity, error)
 }

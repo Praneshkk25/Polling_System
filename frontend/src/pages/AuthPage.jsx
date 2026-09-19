@@ -5,7 +5,6 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import Button from '../components/ui/Button';
-import PostLoginCelebration from '../components/auth/PostLoginCelebration';
 
 export default function AuthPage({ initialMode = 'login', onBackToHome, onSuccess, showToast }) {
   const [mode, setMode] = useState(initialMode); // 'login' or 'signup'
@@ -16,13 +15,12 @@ export default function AuthPage({ initialMode = 'login', onBackToHome, onSucces
   const [rememberMe, setRememberMe] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [showCelebration, setShowCelebration] = useState(false);
-  const [celebrationUser, setCelebrationUser] = useState(null);
 
   const { login, signup } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (loading) return;
     setError('');
 
     if (mode === 'signup' && !name.trim()) {
@@ -36,16 +34,15 @@ export default function AuthPage({ initialMode = 'login', onBackToHome, onSucces
 
     setLoading(true);
     try {
-      let authedUser;
       if (mode === 'login') {
-        authedUser = await login(email.trim(), password);
+        await login(email.trim(), password);
         if (showToast) showToast('Welcome back! Successfully signed in. ✨');
       } else {
-        authedUser = await signup(name.trim(), email.trim(), password);
+        await signup(name.trim(), email.trim(), password);
         if (showToast) showToast('Account created successfully! Welcome to PulsePoll. 🎉');
       }
-      setCelebrationUser(authedUser || { email: email.trim(), name: name.trim() || 'Creator' });
-      setShowCelebration(true);
+      setLoading(false);
+      if (onSuccess) onSuccess();
     } catch (err) {
       setError(err.message || 'Authentication failed. Please check your credentials.');
       setLoading(false);
@@ -60,15 +57,6 @@ export default function AuthPage({ initialMode = 'login', onBackToHome, onSucces
 
   return (
     <div className="auth-page-wrapper">
-      {/* Unique Post-Login Cinematic Holographic Animation */}
-      {showCelebration && (
-        <PostLoginCelebration
-          user={celebrationUser}
-          onComplete={() => {
-            if (onSuccess) onSuccess();
-          }}
-        />
-      )}
 
       {/* Back to Home Button using React Button Component */}
       <div className="auth-back-nav">

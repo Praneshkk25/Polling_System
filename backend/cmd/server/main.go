@@ -86,21 +86,21 @@ func main() {
 		// Public Discovery Endpoints (For Audience & Landing Page)
 		public := api.Group("/public")
 		{
-			public.GET("/polls", pollController.ListPublicPolls)
+			public.GET("/polls", middleware.OptionalAuthMiddleware(cfg), pollController.ListPublicPolls)
 			public.GET("/polls/:id", pollController.GetPoll)
 		}
 
 		// Dashboard & Analytics Endpoints
-		api.GET("/dashboard/stats", pollController.GetStats)
-		api.GET("/dashboard/activity", pollController.GetActivity)
-		api.GET("/analytics", pollController.GetAnalytics)
+		api.GET("/dashboard/stats", middleware.OptionalAuthMiddleware(cfg), pollController.GetStats)
+		api.GET("/dashboard/activity", middleware.OptionalAuthMiddleware(cfg), pollController.GetActivity)
+		api.GET("/analytics", middleware.OptionalAuthMiddleware(cfg), pollController.GetAnalytics)
 
 		// Poll Routes
 		polls := api.Group("/polls")
 		{
 			// Public / Audience endpoints
-			polls.GET("", pollController.ListPolls)
-			polls.GET("/stats", pollController.GetStats)
+			polls.GET("", middleware.OptionalAuthMiddleware(cfg), pollController.ListPolls)
+			polls.GET("/stats", middleware.OptionalAuthMiddleware(cfg), pollController.GetStats)
 			polls.GET("/:id", pollController.GetPoll)
 			polls.GET("/:id/results", voteController.GetResults)
 

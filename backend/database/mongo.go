@@ -100,6 +100,10 @@ func (m *MongoStore) ensureDemoUser() {
 			"createdAt": time.Now(),
 		},
 	}, options.Update().SetUpsert(true))
+
+	// Tag existing demo polls and activities with isMock: true
+	_, _ = m.polls.UpdateMany(ctx, bson.M{"createdBy": "user-pranesh-1"}, bson.M{"$set": bson.M{"isMock": true}})
+	_, _ = m.activities.UpdateMany(ctx, bson.M{"userId": "user-pranesh-1"}, bson.M{"$set": bson.M{"isMock": true}})
 }
 
 func (m *MongoStore) seedInitialDataIfEmpty() {
@@ -419,7 +423,7 @@ func (m *MongoStore) GetPollByID(id string) (*models.Poll, error) {
 	return &poll, nil
 }
 
-func (m *MongoStore) ListPolls(status, category, search, userID string) ([]*models.Poll, error) {
+func (m *MongoStore) ListPolls(status, category, search, userID string, excludeMock bool) ([]*models.Poll, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -432,6 +436,12 @@ func (m *MongoStore) ListPolls(status, category, search, userID string) ([]*mode
 	}
 	if userID != "" {
 		filter["createdBy"] = userID
+		if excludeMock && userID != "user-pranesh-1" {
+			filter["isMock"] = bson.M{"$ne": true}
+		}
+	} else if excludeMock {
+		filter["createdBy"] = bson.M{"$ne": "user-pranesh-1"}
+		filter["isMock"] = bson.M{"$ne": true}
 	}
 	if search != "" {
 		filter["$or"] = []bson.M{
@@ -460,12 +470,16 @@ func (m *MongoStore) ListPolls(status, category, search, userID string) ([]*mode
 	return polls, nil
 }
 
-func (m *MongoStore) ListPublicPolls(category, search, sort string, limit int) ([]*models.Poll, error) {
+func (m *MongoStore) ListPublicPolls(category, search, sort string, limit int, excludeMock bool) ([]*models.Poll, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	filter := bson.M{
 		"visibility": bson.M{"$ne": "private"},
+	}
+	if excludeMock {
+		filter["createdBy"] = bson.M{"$ne": "user-pranesh-1"}
+		filter["isMock"] = bson.M{"$ne": true}
 	}
 	if category != "" && category != "All" {
 		filter["category"] = category
@@ -726,9 +740,29 @@ func (m *MongoStore) RecordVote(vote *models.Vote) (*models.Poll, error) {
 	return poll, nil
 }
 
-func (m *MongoStore) GetDashboardStats() (*models.DashboardStats, error) {
+func (m *MongoStore) GetDashboardStats(userID string) (*models.DashboardStats, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
+
+	if userID != "" && userID != "user-pranesh-1" {
+		totalPolls, totalVotes, totalViews, err := m.GetUserStats(userID)
+		if err != nil {
+			return nil, err
+		}
+		engagementRate := 0.0
+		if totalViews > 0 {
+			engagementRate = (float64(totalVotes) / float64(totalViews)) * 100.0
+			if engagementRate > 100.0 {
+				engagementRate = 100.0
+			}
+		}
+		return &models.DashboardStats{
+			TotalPolls:     totalPolls,
+			TotalVotes:     totalVotes,
+			TotalViews:     totalViews,
+			EngagementRate: engagementRate,
+		}, nil
+	}
 
 	totalPolls, _ := m.polls.CountDocuments(ctx, bson.M{})
 	totalVotes, _ := m.votes.CountDocuments(ctx, bson.M{})
@@ -772,16 +806,7 @@ func (m *MongoStore) GetAnalytics(userID string) (*models.AnalyticsResponse, err
 	ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
 	defer cancel()
 
-	stats, _ := m.GetDashboardStats()
-
-	// 1. Category aggregation
-	catPipeline := mongo.Pipeline{
-		{{Key: "$group", Value: bson.D{
-			{Key: "_id", Value: "$category"},
-			{Key: "count", Value: bson.D{{Key: "$sum", Value: "$totalVotes"}}},
-		}}},
-		{{Key: "$sort", Value: bson.D{{Key: "count", Value: -1}}}},
-	}
+	stats, _ := m.GetDashboardStats(userID)
 
 	colors := map[string]string{
 		"Technology":    "#6366F1",
@@ -790,6 +815,24 @@ func (m *MongoStore) GetAnalytics(userID string) (*models.AnalyticsResponse, err
 		"Entertainment": "#EC4899",
 		"General":       "#8B5CF6",
 	}
+
+	var matchStage bson.D
+	if userID != "" && userID != "user-pranesh-1" {
+		matchStage = bson.D{{Key: "$match", Value: bson.M{"createdBy": userID, "isMock": bson.M{"$ne": true}}}}
+	}
+
+	// 1. Category aggregation
+	var catPipeline mongo.Pipeline
+	if len(matchStage) > 0 {
+		catPipeline = append(catPipeline, matchStage)
+	}
+	catPipeline = append(catPipeline,
+		bson.D{{Key: "$group", Value: bson.D{
+			{Key: "_id", Value: "$category"},
+			{Key: "count", Value: bson.D{{Key: "$sum", Value: "$totalVotes"}}},
+		}}},
+		bson.D{{Key: "$sort", Value: bson.D{{Key: "count", Value: -1}}}},
+	)
 
 	var categoryStats []models.CategoryBreakdown
 	catCursor, err := m.polls.Aggregate(ctx, catPipeline)
@@ -829,10 +872,18 @@ func (m *MongoStore) GetAnalytics(userID string) (*models.AnalyticsResponse, err
 			Color:      color,
 		})
 	}
+	if categoryStats == nil {
+		categoryStats = []models.CategoryBreakdown{}
+	}
 
 	// 2. Top polls
+	topPollFilter := bson.M{}
+	if userID != "" && userID != "user-pranesh-1" {
+		topPollFilter["createdBy"] = userID
+		topPollFilter["isMock"] = bson.M{"$ne": true}
+	}
 	topPollsOpts := options.Find().SetSort(bson.D{{Key: "totalVotes", Value: -1}}).SetLimit(5)
-	topCursor, _ := m.polls.Find(ctx, bson.M{}, topPollsOpts)
+	topCursor, _ := m.polls.Find(ctx, topPollFilter, topPollsOpts)
 	var topPolls []models.TopPollItem
 	if topCursor != nil {
 		for topCursor.Next(ctx) {
@@ -861,6 +912,9 @@ func (m *MongoStore) GetAnalytics(userID string) (*models.AnalyticsResponse, err
 		}
 		_ = topCursor.Close(ctx)
 	}
+	if topPolls == nil {
+		topPolls = []models.TopPollItem{}
+	}
 
 	return &models.AnalyticsResponse{
 		TotalPolls:       stats.TotalPolls,
@@ -888,7 +942,7 @@ func (m *MongoStore) RecordActivity(activity *models.Activity) error {
 	return err
 }
 
-func (m *MongoStore) GetRecentActivities(limit int) ([]*models.Activity, error) {
+func (m *MongoStore) GetRecentActivities(limit int, userID string) ([]*models.Activity, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -896,8 +950,14 @@ func (m *MongoStore) GetRecentActivities(limit int) ([]*models.Activity, error) 
 		limit = 10
 	}
 
+	filter := bson.M{}
+	if userID != "" && userID != "user-pranesh-1" {
+		filter["userId"] = userID
+		filter["isMock"] = bson.M{"$ne": true}
+	}
+
 	opts := options.Find().SetSort(bson.D{{Key: "createdAt", Value: -1}}).SetLimit(int64(limit))
-	cursor, err := m.activities.Find(ctx, bson.M{}, opts)
+	cursor, err := m.activities.Find(ctx, filter, opts)
 	if err != nil {
 		return nil, err
 	}

@@ -45,18 +45,20 @@ export default function DashboardPage({
   const [selectedPoll, setSelectedPoll] = useState(null);
 
   // Profile Edit State
-  const [editName, setEditName] = useState(user ? user.name : 'Pranesh');
+  const [editName, setEditName] = useState(user ? user.name : '');
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [savingProfile, setSavingProfile] = useState(false);
 
+  const isDemoUser = Boolean(user && (user.email === 'pranesh@pulsepoll.io' || user.id === 'user-pranesh-1'));
+
   const fetchDashboardData = async () => {
     try {
       const [pollList, statsData, analyticsData, pubPolls] = await Promise.all([
-        api.getPolls(),
-        api.getStats(),
-        api.getAnalytics(),
-        api.getPublicPolls({ category: exploreCategory, sort: exploreSort }),
+        api.getPolls({ userId: user?.id, excludeMock: !isDemoUser }),
+        api.getStats({ userId: user?.id }),
+        api.getAnalytics({ userId: user?.id }),
+        api.getPublicPolls({ category: exploreCategory, sort: exploreSort, userId: user?.id, excludeMock: !isDemoUser }),
       ]);
       setPolls(pollList || []);
       setStats(statsData);
@@ -71,7 +73,7 @@ export default function DashboardPage({
 
   useEffect(() => {
     fetchDashboardData();
-  }, [exploreCategory, exploreSort]);
+  }, [exploreCategory, exploreSort, user]);
 
   useEffect(() => {
     if (user && user.name) {
@@ -313,6 +315,8 @@ export default function DashboardPage({
               <TrendingGrid
                 onSelectPoll={(trending) => onNavigateToVote(trending.id)}
                 onExploreAll={() => setActiveNavTab('explore')}
+                isDemoUser={isDemoUser}
+                onOpenCreate={() => setShowCreateModal(true)}
               />
             </>
           )}
@@ -533,11 +537,11 @@ export default function DashboardPage({
               <div className="profile-stats-grid">
                 <div className="profile-metric-box">
                   <div className="pmetric-label">Polls Created</div>
-                  <div className="pmetric-value">{user ? user.totalPolls || polls.length : 12} Polls</div>
+                  <div className="pmetric-value">{stats ? stats.totalPolls : (user?.totalPolls ?? polls.length)} Polls</div>
                 </div>
                 <div className="profile-metric-box">
                   <div className="pmetric-label">Audience Votes Received</div>
-                  <div className="pmetric-value">{stats ? stats.totalVotes : 482} Votes</div>
+                  <div className="pmetric-value">{stats ? stats.totalVotes : 0} Votes</div>
                 </div>
               </div>
 
@@ -658,6 +662,7 @@ export default function DashboardPage({
         {/* Right Column: Contextual Sidebar */}
         <RightSidebar
           activeTab={activeNavTab}
+          userId={user?.id}
           onOpenCreate={() => setShowCreateModal(true)}
           onOpenJoin={() => setShowJoinModal(true)}
           onExplore={() => {

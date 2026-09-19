@@ -61,6 +61,7 @@ export const api = {
     if (params.category) query.set('category', params.category);
     if (params.search) query.set('search', params.search);
     if (params.userId) query.set('userId', params.userId);
+    if (params.excludeMock !== undefined) query.set('excludeMock', params.excludeMock);
     const qs = query.toString();
     return request(`/polls${qs ? `?${qs}` : ''}`);
   },
@@ -69,12 +70,29 @@ export const api = {
     if (params.category) query.set('category', params.category);
     if (params.search) query.set('search', params.search);
     if (params.sort) query.set('sort', params.sort);
+    if (params.userId) query.set('userId', params.userId);
+    if (params.excludeMock !== undefined) query.set('excludeMock', params.excludeMock);
     const qs = query.toString();
     return request(`/public/polls${qs ? `?${qs}` : ''}`);
   },
-  getStats: () => request('/dashboard/stats'),
-  getAnalytics: () => request('/analytics'),
-  getActivities: () => request('/dashboard/activity'),
+  getStats: (params = {}) => {
+    const query = new URLSearchParams();
+    if (params.userId) query.set('userId', params.userId);
+    const qs = query.toString();
+    return request(`/dashboard/stats${qs ? `?${qs}` : ''}`);
+  },
+  getAnalytics: (params = {}) => {
+    const query = new URLSearchParams();
+    if (params.userId) query.set('userId', params.userId);
+    const qs = query.toString();
+    return request(`/analytics${qs ? `?${qs}` : ''}`);
+  },
+  getActivities: (params = {}) => {
+    const query = new URLSearchParams();
+    if (params.userId) query.set('userId', params.userId);
+    const qs = query.toString();
+    return request(`/dashboard/activity${qs ? `?${qs}` : ''}`);
+  },
   getPoll: (id) => request(`/polls/${id}`),
   getResults: (id) => request(`/polls/${id}/results`),
   createPoll: (pollData) => request('/polls', { method: 'POST', body: JSON.stringify(pollData) }),

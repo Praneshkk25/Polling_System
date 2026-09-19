@@ -2,18 +2,18 @@ import React, { useState, useEffect } from 'react';
 import { BarChart2, Flame } from 'lucide-react';
 import { api } from '../services/api';
 
-export default function TrendingGrid({ onSelectPoll, onExploreAll }) {
+export default function TrendingGrid({ onSelectPoll, onExploreAll, isDemoUser = false, onOpenCreate }) {
   const [trendingPolls, setTrendingPolls] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.getPublicPolls({ sort: 'trending' })
+    api.getPublicPolls({ sort: 'trending', excludeMock: !isDemoUser })
       .then((polls) => {
         setTrendingPolls((polls || []).slice(0, 4));
       })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, []);
+  }, [isDemoUser]);
 
   if (loading) {
     return (
@@ -24,6 +24,25 @@ export default function TrendingGrid({ onSelectPoll, onExploreAll }) {
   }
 
   if (trendingPolls.length === 0) {
+    if (!isDemoUser) {
+      return (
+        <div style={{ marginTop: '24px' }}>
+          <div className="section-header">
+            <h2>Community Polls</h2>
+          </div>
+          <div className="empty-polls-box" style={{ padding: '24px', textAlign: 'center' }}>
+            <p style={{ color: '#6B7280', fontSize: '13.5px', marginBottom: '12px' }}>
+              No community public polls published yet. Be the first to share a question with the world!
+            </p>
+            {onOpenCreate && (
+              <button className="btn-primary" onClick={onOpenCreate}>
+                + Publish a Public Poll
+              </button>
+            )}
+          </div>
+        </div>
+      );
+    }
     return null;
   }
 

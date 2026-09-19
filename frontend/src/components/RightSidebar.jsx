@@ -5,21 +5,21 @@ import {
 } from 'lucide-react';
 import { api } from '../services/api';
 
-export default function RightSidebar({ activeTab, onOpenCreate, onOpenJoin, onExplore }) {
+export default function RightSidebar({ activeTab, onOpenCreate, onOpenJoin, onExplore, userId }) {
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (activeTab === 'home') {
       setLoading(true);
-      api.getActivities()
+      api.getActivities({ userId })
         .then((data) => {
           setActivities(data || []);
         })
         .catch(() => {})
         .finally(() => setLoading(false));
     }
-  }, [activeTab]);
+  }, [activeTab, userId]);
 
   const formatTimeAgo = (dateStr) => {
     if (!dateStr) return 'Just now';

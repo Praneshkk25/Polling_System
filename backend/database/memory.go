@@ -62,6 +62,7 @@ func (m *MemoryStore) seedInitialData() {
 			CreatorName: "Pranesh",
 			Status:      "active",
 			Visibility:  "public",
+			IsMock:      true,
 			TotalVotes:  482,
 			TotalViews:  2150,
 			CreatedAt:   time.Now().Add(-48 * time.Hour),
@@ -82,6 +83,7 @@ func (m *MemoryStore) seedInitialData() {
 			CreatorName: "Pranesh",
 			Status:      "active",
 			Visibility:  "public",
+			IsMock:      true,
 			TotalVotes:  500,
 			TotalViews:  1800,
 			CreatedAt:   time.Now().Add(-36 * time.Hour),
@@ -195,7 +197,7 @@ func (m *MemoryStore) GetPollByID(id string) (*models.Poll, error) {
 	return poll, nil
 }
 
-func (m *MemoryStore) ListPolls(status, category, search, userID string) ([]*models.Poll, error) {
+func (m *MemoryStore) ListPolls(status, category, search, userID string, excludeMock bool) ([]*models.Poll, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
@@ -210,21 +212,30 @@ func (m *MemoryStore) ListPolls(status, category, search, userID string) ([]*mod
 		if userID != "" && p.CreatedBy != userID {
 			continue
 		}
+		if excludeMock && (p.IsMock || p.CreatedBy == "user-pranesh-1") && (userID == "" || userID != "user-pranesh-1") {
+			continue
+		}
 		if search != "" && !strings.Contains(strings.ToLower(p.Question), strings.ToLower(search)) {
 			continue
 		}
 		result = append(result, p)
 	}
+	if result == nil {
+		result = []*models.Poll{}
+	}
 	return result, nil
 }
 
-func (m *MemoryStore) ListPublicPolls(category, search, sort string, limit int) ([]*models.Poll, error) {
+func (m *MemoryStore) ListPublicPolls(category, search, sort string, limit int, excludeMock bool) ([]*models.Poll, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
 	var result []*models.Poll
 	for _, p := range m.polls {
 		if p.Visibility == "private" {
+			continue
+		}
+		if excludeMock && (p.IsMock || p.CreatedBy == "user-pranesh-1") {
 			continue
 		}
 		if category != "" && category != "All" && p.Category != category {
@@ -234,6 +245,9 @@ func (m *MemoryStore) ListPublicPolls(category, search, sort string, limit int) 
 			continue
 		}
 		result = append(result, p)
+	}
+	if result == nil {
+		result = []*models.Poll{}
 	}
 	return result, nil
 }
@@ -359,9 +373,35 @@ func (m *MemoryStore) RecordVote(vote *models.Vote) (*models.Poll, error) {
 	return poll, nil
 }
 
-func (m *MemoryStore) GetDashboardStats() (*models.DashboardStats, error) {
+func (m *MemoryStore) GetDashboardStats(userID string) (*models.DashboardStats, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
+
+	if userID != "" && userID != "user-pranesh-1" {
+		var totalPolls int64 = 0
+		var totalVotes int64 = 0
+		var totalViews int64 = 0
+		for _, p := range m.polls {
+			if p.CreatedBy == userID && !p.IsMock {
+				totalPolls++
+				totalVotes += p.TotalVotes
+				totalViews += p.TotalViews
+			}
+		}
+		engagementRate := 0.0
+		if totalViews > 0 {
+			engagementRate = (float64(totalVotes) / float64(totalViews)) * 100.0
+			if engagementRate > 100.0 {
+				engagementRate = 100.0
+			}
+		}
+		return &models.DashboardStats{
+			TotalPolls:     totalPolls,
+			TotalVotes:     totalVotes,
+			TotalViews:     totalViews,
+			EngagementRate: engagementRate,
+		}, nil
+	}
 
 	var totalViews int64 = 0
 	for _, p := range m.polls {
@@ -383,7 +423,91 @@ func (m *MemoryStore) GetDashboardStats() (*models.DashboardStats, error) {
 }
 
 func (m *MemoryStore) GetAnalytics(userID string) (*models.AnalyticsResponse, error) {
-	stats, _ := m.GetDashboardStats()
+	stats, _ := m.GetDashboardStats(userID)
+
+	if userID != "" && userID != "user-pranesh-1" {
+		m.mu.RLock()
+		defer m.mu.RUnlock()
+
+		catMap := make(map[string]int64)
+		var userPolls []*models.Poll
+		for _, p := range m.polls {
+			if p.CreatedBy == userID && !p.IsMock {
+				cat := p.Category
+				if cat == "" {
+					cat = "General"
+				}
+				catMap[cat] += p.TotalVotes
+				userPolls = append(userPolls, p)
+			}
+		}
+
+		colors := map[string]string{
+			"Technology":    "#6366F1",
+			"Lifestyle":     "#10B981",
+			"Environment":   "#F59E0B",
+			"Entertainment": "#EC4899",
+			"General":       "#8B5CF6",
+		}
+
+		var categoryStats []models.CategoryBreakdown
+		for cat, count := range catMap {
+			pct := 0.0
+			if stats.TotalVotes > 0 {
+				pct = (float64(count) / float64(stats.TotalVotes)) * 100.0
+			}
+			color := colors[cat]
+			if color == "" {
+				color = "#6366F1"
+			}
+			categoryStats = append(categoryStats, models.CategoryBreakdown{
+				Category:   cat,
+				Count:      count,
+				Percentage: pct,
+				Color:      color,
+			})
+		}
+		if categoryStats == nil {
+			categoryStats = []models.CategoryBreakdown{}
+		}
+
+		var topPolls []models.TopPollItem
+		for _, p := range userPolls {
+			var topOptText string
+			var topOptPct float64
+			var maxVotes int64 = -1
+			for _, o := range p.Options {
+				if o.VotesCount > maxVotes {
+					maxVotes = o.VotesCount
+					topOptText = o.Text
+					topOptPct = o.Percentage
+				}
+			}
+			topPolls = append(topPolls, models.TopPollItem{
+				ID:            p.ID,
+				Question:      p.Question,
+				Category:      p.Category,
+				TotalVotes:    p.TotalVotes,
+				TotalViews:    p.TotalViews,
+				TopOptionText: topOptText,
+				TopOptionPct:  topOptPct,
+			})
+		}
+		if topPolls == nil {
+			topPolls = []models.TopPollItem{}
+		}
+
+		return &models.AnalyticsResponse{
+			TotalPolls:       stats.TotalPolls,
+			TotalVotes:       stats.TotalVotes,
+			TotalViews:       stats.TotalViews,
+			EngagementRate:   stats.EngagementRate,
+			CategoryStats:    categoryStats,
+			TopPolls:         topPolls,
+			RecentVotesCount: stats.TotalVotes,
+		}, nil
+	}
+
 	return &models.AnalyticsResponse{
 		TotalPolls:     stats.TotalPolls,
 		TotalVotes:     stats.TotalVotes,
@@ -393,6 +517,7 @@ func (m *MemoryStore) GetAnalytics(userID string) (*models.AnalyticsResponse, er
 			{Category: "Technology", Count: 482, Percentage: 50.0, Color: "#6366F1"},
 			{Category: "Lifestyle", Count: 980, Percentage: 35.0, Color: "#10B981"},
 		},
+		TopPolls:         []models.TopPollItem{},
 		RecentVotesCount: stats.TotalVotes,
 	}, nil
 }
@@ -405,12 +530,24 @@ func (m *MemoryStore) RecordActivity(activity *models.Activity) error {
 	return nil
 }
 
-func (m *MemoryStore) GetRecentActivities(limit int) ([]*models.Activity, error) {
+func (m *MemoryStore) GetRecentActivities(limit int, userID string) ([]*models.Activity, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
-	if len(m.activities) > limit {
-		return m.activities[:limit], nil
+	var filtered []*models.Activity
+	for _, a := range m.activities {
+		if userID != "" && userID != "user-pranesh-1" {
+			if a.UserID != userID || a.IsMock {
+				continue
+			}
+		}
+		filtered = append(filtered, a)
+		if len(filtered) >= limit {
+			break
+		}
 	}
-	return m.activities, nil
+	if filtered == nil {
+		filtered = []*models.Activity{}
+	}
+	return filtered, nil
 }

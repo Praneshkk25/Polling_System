@@ -128,7 +128,17 @@ func (pc *PollController) ListPolls(c *gin.Context) {
 	search := c.Query("search")
 	userFilter := c.Query("userId")
 
-	polls, err := pc.store.ListPolls(status, category, search, userFilter)
+	userID, _ := c.Get("userId")
+	if userFilter == "" && userID != nil && userID.(string) != "" {
+		userFilter = userID.(string)
+	}
+
+	excludeMock := c.Query("excludeMock") == "true"
+	if userFilter != "" && userFilter != "user-pranesh-1" {
+		excludeMock = true
+	}
+
+	polls, err := pc.store.ListPolls(status, category, search, userFilter, excludeMock)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to list polls"})
 		return
@@ -143,8 +153,17 @@ func (pc *PollController) ListPublicPolls(c *gin.Context) {
 	category := c.Query("category")
 	search := c.Query("search")
 	sort := c.Query("sort") // "trending", "most_votes", "newest"
+	excludeMock := c.Query("excludeMock") == "true"
 
-	polls, err := pc.store.ListPublicPolls(category, search, sort, 20)
+	userID, _ := c.Get("userId")
+	if userID != nil && userID.(string) != "" && userID.(string) != "user-pranesh-1" {
+		excludeMock = true
+	}
+	if qUserID := c.Query("userId"); qUserID != "" && qUserID != "user-pranesh-1" {
+		excludeMock = true
+	}
+
+	polls, err := pc.store.ListPublicPolls(category, search, sort, 20, excludeMock)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to list public polls"})
 		return
@@ -276,7 +295,16 @@ func (pc *PollController) DuplicatePoll(c *gin.Context) {
 }
 
 func (pc *PollController) GetStats(c *gin.Context) {
-	stats, err := pc.store.GetDashboardStats()
+	userID, _ := c.Get("userId")
+	userIdStr := ""
+	if userID != nil && userID.(string) != "" {
+		userIdStr = userID.(string)
+	}
+	if qUserID := c.Query("userId"); qUserID != "" {
+		userIdStr = qUserID
+	}
+
+	stats, err := pc.store.GetDashboardStats(userIdStr)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve dashboard stats"})
 		return
@@ -287,8 +315,11 @@ func (pc *PollController) GetStats(c *gin.Context) {
 func (pc *PollController) GetAnalytics(c *gin.Context) {
 	userID, _ := c.Get("userId")
 	userIdStr := ""
-	if userID != nil {
+	if userID != nil && userID.(string) != "" {
 		userIdStr = userID.(string)
+	}
+	if qUserID := c.Query("userId"); qUserID != "" {
+		userIdStr = qUserID
 	}
 
 	analytics, err := pc.store.GetAnalytics(userIdStr)
@@ -300,7 +331,16 @@ func (pc *PollController) GetAnalytics(c *gin.Context) {
 }
 
 func (pc *PollController) GetActivity(c *gin.Context) {
-	activities, err := pc.store.GetRecentActivities(10)
+	userID, _ := c.Get("userId")
+	userIdStr := ""
+	if userID != nil && userID.(string) != "" {
+		userIdStr = userID.(string)
+	}
+	if qUserID := c.Query("userId"); qUserID != "" {
+		userIdStr = qUserID
+	}
+
+	activities, err := pc.store.GetRecentActivities(10, userIdStr)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load recent activities"})
 		return

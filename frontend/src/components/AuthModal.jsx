@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { X, LogIn, UserPlus, AlertCircle, Sparkles } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import Button from './ui/Button';
-import PostLoginCelebration from './auth/PostLoginCelebration';
 
 export default function AuthModal({ isOpen, onClose, showToast }) {
   const { login, signup } = useAuth();
@@ -12,66 +11,53 @@ export default function AuthModal({ isOpen, onClose, showToast }) {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [showCelebration, setShowCelebration] = useState(false);
-  const [celebrationUser, setCelebrationUser] = useState(null);
 
   if (!isOpen) return null;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (loading) return;
     setError('');
     setLoading(true);
 
     try {
-      let authUser = null;
       if (isSignup) {
         if (!name.trim()) {
           setError('Please enter your full name');
           setLoading(false);
           return;
         }
-        authUser = await signup(name.trim(), email.trim(), password);
+        await signup(name.trim(), email.trim(), password);
         if (showToast) showToast('Account created successfully! 🎉');
       } else {
-        authUser = await login(email.trim(), password);
+        await login(email.trim(), password);
         if (showToast) showToast('Welcome back! 👋');
       }
-      setCelebrationUser(authUser || { name: isSignup ? name.trim() : email.split('@')[0], email });
-      setShowCelebration(true);
+      setLoading(false);
+      onClose();
     } catch (err) {
       setError(err.message || 'Authentication failed');
-    } finally {
       setLoading(false);
     }
   };
 
   const handleQuickDemoLogin = async () => {
+    if (loading) return;
     setError('');
     setLoading(true);
     try {
-      const authUser = await login('pranesh@pulsepoll.io', 'Password123!');
+      await login('pranesh@pulsepoll.io', 'Password123!');
       if (showToast) showToast('Logged in as Pranesh (Creator) 👋');
-      setCelebrationUser(authUser || { name: 'Pranesh', email: 'pranesh@pulsepoll.io' });
-      setShowCelebration(true);
+      setLoading(false);
+      onClose();
     } catch (err) {
       setError(err.message || 'Failed to login with demo credentials');
-    } finally {
       setLoading(false);
     }
   };
 
   return (
     <>
-      {showCelebration && (
-        <PostLoginCelebration
-          user={celebrationUser}
-          onComplete={() => {
-            setShowCelebration(false);
-            onClose();
-          }}
-        />
-      )}
-
       <div className="modal-backdrop" onClick={onClose}>
         <div className="modal-card" style={{ width: '440px' }} onClick={(e) => e.stopPropagation()}>
           <button className="modal-close-btn" onClick={onClose}>

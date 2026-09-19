@@ -27,6 +27,7 @@ type Poll struct {
 	ExpiresAt          *time.Time   `json:"expiresAt,omitempty" bson:"expiresAt,omitempty"`
 	TotalVotes         int64        `json:"totalVotes" bson:"totalVotes"`
 	TotalViews         int64        `json:"totalViews" bson:"totalViews"`
+	IsMock             bool         `json:"isMock,omitempty" bson:"isMock,omitempty"`
 	CreatedAt          time.Time    `json:"createdAt" bson:"createdAt"`
 	UpdatedAt          time.Time    `json:"updatedAt" bson:"updatedAt"`
 }
@@ -101,5 +102,6 @@ type Activity struct {
 	PollTitle   string    `json:"pollTitle" bson:"pollTitle"`
 	Type        string    `json:"type" bson:"type"` // "vote", "create", "close", "duplicate"
 	Description string    `json:"description" bson:"description"`
+	IsMock      bool      `json:"isMock,omitempty" bson:"isMock,omitempty"`
 	CreatedAt   time.Time `json:"createdAt" bson:"createdAt"`
 }
